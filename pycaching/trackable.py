@@ -153,7 +153,8 @@ class Trackable(object):
 
     @type.setter
     def type(self, type):
-        self._type = type.strip()
+        if type is not None:
+            self._type = type.strip()
 
     def get_KML(self):
         """Return the KML route of the trackable.
@@ -188,20 +189,42 @@ class Trackable(object):
         self.tid = root.find("span", "CoordInfoCode").text
         self.name = root.find(id="ctl00_ContentBody_lbHeading").text
         self.type = root.find(id="ctl00_ContentBody_BugTypeImage").get("alt")
-        self.owner = root.find(id="ctl00_ContentBody_BugDetails_BugOwner").text
-        self.goal = root.find(id="TrackableGoal").text
-        self.description = root.find(id="TrackableDetails").text
-        self._kml_url = root.find(id="ctl00_ContentBody_lnkGoogleKML").get("href")
+        bugDetails = root.find(id="ctl00_ContentBody_BugDetails_BugOwner")
+        if bugDetails is not None:
+            self.owner = root.find(id="ctl00_ContentBody_BugDetails_BugOwner").text
+        else:
+            self.owner = ""
+        tbGoal = root.find(id="TrackableGoal")
+        if tbGoal is not None:
+            self.goal = root.find(id="TrackableGoal").text
+        else:
+            self.goal = ""
+        tbDescription = root.find(id="TrackableDetails")
+        if tbDescription is not None:
+            self.description = root.find(id="TrackableDetails").text
+        else:
+            self.description = ""
+        tbKml = root.find(id="ctl00_ContentBody_lnkGoogleKML")
+        if tbKml is not None:
+            self._kml_url = root.find(id="ctl00_ContentBody_lnkGoogleKML").get("href")
 
         # another Groundspeak trick... inconsistent relative / absolute URL on one page
-        self._log_page_url = "/track/" + root.find(id="ctl00_ContentBody_LogLink")["href"]
+        logLink = root.find(id="ctl00_ContentBody_LogLink")
+        if logLink is not None:
+            self._log_page_url = "/track/" + root.find(id="ctl00_ContentBody_LogLink")["href"]
 
         location_raw = root.find(id="ctl00_ContentBody_BugDetails_BugLocation")
-        location_url = location_raw.get("href", "")
+        if location_raw is not None:
+            location_url = location_raw.get("href", "")
+        else:
+            location_url = ""
         if "cache_details" in location_url:
             self.location = location_url
         else:
-            self.location = location_raw.text
+            if location_raw is not None:
+                self.location = location_raw.text
+            else:
+                self.location = ""
 
     def _load_log_page(self):
         """Load a logging page for this trackable.
