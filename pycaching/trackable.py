@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from pycaching import errors
-from pycaching.util import format_date, lazy_loaded
+from pycaching.util import format_date, lazy_loaded, parse_date
 
 # prefix _type() function to avoid collisions with trackable type
 _type = type
@@ -11,7 +11,7 @@ class Trackable(object):
     """Represents a trackable with its properties."""
 
     def __init__(
-        self, geocaching, tid, *, name=None, location=None, owner=None, type=None, description=None, goal=None, url=None
+        self, geocaching, tid, *, name=None, location=None, owner=None, type=None, description=None, goal=None, url=None, origin=None, releaseDate=None
     ):
         self.geocaching = geocaching
         if tid is not None:
@@ -30,6 +30,10 @@ class Trackable(object):
             self.type = type
         if url is not None:
             self.url = url
+        if origin is not None:
+            self.origin = origin
+        if releaseDate is not None:
+            self.releaseDate = releaseDate
         self._log_page_url = None
         self._kml_url = None
 
@@ -153,7 +157,8 @@ class Trackable(object):
 
     @type.setter
     def type(self, type):
-        self._type = type.strip()
+        if type is not None:
+            self._type = type.strip()
 
     def get_KML(self):
         """Return the KML route of the trackable.
@@ -163,6 +168,62 @@ class Trackable(object):
         if not self._kml_url:
             self.load()  # fills self._kml_url
         return self.geocaching._request(self._kml_url, expect="raw").text
+
+    @property
+    @lazy_loaded
+    def origin(self):
+        """The trackable origin.
+
+        :type: :class:`str`
+        """
+        return self._origin
+
+    @origin.setter
+    def origin(self, origin):
+        self._origin = origin.strip()
+
+    @property
+    @lazy_loaded
+    def originCountry(self):
+        """The trackable origin country.
+
+        :type: :class:`str`
+        """
+        if "," in self._origin: # there is a state and a country
+            return self._origin.rsplit(', ', 1)[1]
+        else: # only country or no value
+            return self._origin
+
+    @property
+    @lazy_loaded
+    def originState(self):
+        """The trackable origin state.
+
+        :type: :class:`str`
+        """
+        if "," in self._origin: # there is a state and a country
+            return self._origin.rsplit(', ', 1)[0]
+        else: # only country or no value
+            return ""
+
+    @property
+    @lazy_loaded
+    def releaseDate(self):
+        """The trackable releaseDate.
+
+        :type: :class:`str`
+        """
+        return self._releaseDate
+
+    @releaseDate.setter
+    def releaseDate(self, releaseDate):
+        if releaseDate is not None:
+            if "," in releaseDate:
+                self._releaseDate = parse_date(str(releaseDate.strip().rsplit(', ', 1)[1]))
+            else:
+                self._releaseDate = ""
+        else:
+            self._releaseDate = ""
 
     def load(self):
         """Load all possible details about the trackable.
@@ -188,20 +249,52 @@ class Trackable(object):
         self.tid = root.find("span", "CoordInfoCode").text
         self.name = root.find(id="ctl00_ContentBody_lbHeading").text
         self.type = root.find(id="ctl00_ContentBody_BugTypeImage").get("alt")
-        self.owner = root.find(id="ctl00_ContentBody_BugDetails_BugOwner").text
-        self.goal = root.find(id="TrackableGoal").text
-        self.description = root.find(id="TrackableDetails").text
-        self._kml_url = root.find(id="ctl00_ContentBody_lnkGoogleKML").get("href")
+        bugDetails = root.find(id="ctl00_ContentBody_BugDetails_BugOwner")
+        if bugDetails is not None:
+            self.owner = root.find(id="ctl00_ContentBody_BugDetails_BugOwner").text
+        else:
+            self.owner = ""
+        tbGoal = root.find(id="TrackableGoal")
+        if tbGoal is not None:
+            self.goal = root.find(id="TrackableGoal").text
+        else:
+            self.goal = ""
+        tbDescription = root.find(id="TrackableDetails")
+        if tbDescription is not None:
+            self.description = root.find(id="TrackableDetails").text
+        else:
+            self.description = ""
+        tbKml = root.find(id="ctl00_ContentBody_lnkGoogleKML")
+        if tbKml is not None:
+            self._kml_url = root.find(id="ctl00_ContentBody_lnkGoogleKML").get("href")
+        bugOrigin = root.find(id="ctl00_ContentBody_BugDetails_BugOrigin")
+        if bugOrigin is not None:
+            self.origin = root.find(id="ctl00_ContentBody_BugDetails_BugOrigin").text
+        else:
+            self.origin = ""
+        tbReleaseDate = root.find(id="ctl00_ContentBody_BugDetails_BugReleaseDate")
+        if tbReleaseDate is not None:
+            self.releaseDate = root.find(id="ctl00_ContentBody_BugDetails_BugReleaseDate").text
+        else:
+            self.releaseDate = ""
 
         # another Groundspeak trick... inconsistent relative / absolute URL on one page
-        self._log_page_url = "/track/" + root.find(id="ctl00_ContentBody_LogLink")["href"]
+        logLink = root.find(id="ctl00_ContentBody_LogLink")
+        if logLink is not None:
+            self._log_page_url = "/track/" + root.find(id="ctl00_ContentBody_LogLink")["href"]
 
         location_raw = root.find(id="ctl00_ContentBody_BugDetails_BugLocation")
-        location_url = location_raw.get("href", "")
+        if location_raw is not None:
+            location_url = location_raw.get("href", "")
+        else:
+            location_url = ""
         if "cache_details" in location_url:
             self.location = location_url
         else:
-            self.location = location_raw.text
+            if location_raw is not None:
+                self.location = location_raw.text
+            else:
+                self.location = ""
 
     def _load_log_page(self):
         """Load a logging page for this trackable.
