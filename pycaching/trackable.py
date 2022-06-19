@@ -2,6 +2,9 @@
 
 from pycaching import errors
 from pycaching.util import format_date, lazy_loaded, parse_date
+from pycaching.log import Log
+from pycaching.log import Type as LogType
+from bs4 import BeautifulSoup
 
 # prefix _type() function to avoid collisions with trackable type
 _type = type
@@ -11,7 +14,7 @@ class Trackable(object):
     """Represents a trackable with its properties."""
 
     def __init__(
-        self, geocaching, tid, *, name=None, location=None, owner=None, type=None, description=None, goal=None, url=None, origin=None, releaseDate=None
+        self, geocaching, tid, *, name=None, location=None, owner=None, type=None, description=None, goal=None, url=None, origin=None, releaseDate=None, lastTBLogs=None
     ):
         self.geocaching = geocaching
         if tid is not None:
@@ -34,6 +37,8 @@ class Trackable(object):
             self.origin = origin
         if releaseDate is not None:
             self.releaseDate = releaseDate
+        if lastTBLogs is not None:
+            self.lastTBLogs = lastTBLogs
         self._log_page_url = None
         self._kml_url = None
 
@@ -225,6 +230,19 @@ class Trackable(object):
         else:
             self._releaseDate = ""
 
+    @property
+    @lazy_loaded
+    def lastTBLogs(self):
+        """The trackable lastLogs.
+
+        :type: :class:`str`
+        """
+        return self._lastTBLogs
+
+    @lastTBLogs.setter
+    def lastTBLogs(self, lastTBLogs):
+        self._lastTBLogs = lastTBLogs
+
     def load(self):
         """Load all possible details about the trackable.
 
@@ -244,8 +262,8 @@ class Trackable(object):
 
         # make request
         root = self.geocaching._request(url)
-
-        # parse data
+        
+		# parse data
         self.tid = root.find("span", "CoordInfoCode").text
         self.name = root.find(id="ctl00_ContentBody_lbHeading").text
         self.type = root.find(id="ctl00_ContentBody_BugTypeImage").get("alt")
@@ -296,6 +314,34 @@ class Trackable(object):
             else:
                 self.location = ""
 
+        # Load logs which have been already loaded by that request into log object
+        lastTBLogsTmp = []
+        #soup = BeautifulSoup(str(root), 'lxml') # Parse the HTML as a string
+        soup = BeautifulSoup(str(root), 'html.parser') # Parse the HTML as a string
+        table = soup.find("table",{"class":"TrackableItemLogTable Table"}) # Grab log table
+        for row in table.find_all('tr'):
+            if "BorderTop" in row["class"]:
+                header = row.find('th') # there should only be one
+                tbLogType = header.img["title"]
+                tbLogDate = parse_date(header.get_text().replace("&nbsp", "").strip())
+                tbLogOwnerRow = row.find('td') # we need to first
+                tbLogOwner = tbLogOwnerRow.a.get_text().strip()
+                tbLogGUIDRow = row.findAll('td')[2] # we the third one
+                tbLogGUID = tbLogGUIDRow.a["href"].strip().replace("https://www.geocaching.com/track/log.aspx?LUID=","")
+            if "BorderBottom" in row["class"]:
+                logRow = row.find('td') # there should only be one
+                tbLogText = logRow.div.get_text().strip()
+                # create and fill log object
+                lastTBLogsTmp.append(Log(
+                    uuid=tbLogGUID,
+                    type=tbLogType,
+                    text=tbLogText,
+                    visited=tbLogDate,
+                    author=tbLogOwner,
+                )
+                )
+        self.lastTBLogs=lastTBLogsTmp
+         
     def _load_log_page(self):
         """Load a logging page for this trackable.
 
