@@ -263,7 +263,7 @@ class Trackable(object):
         # make request
         root = self.geocaching._request(url)
         
-		# parse data
+        # parse data
         self.tid = root.find("span", "CoordInfoCode").text
         self.name = root.find(id="ctl00_ContentBody_lbHeading").text
         self.type = root.find(id="ctl00_ContentBody_BugTypeImage").get("alt")
@@ -316,30 +316,30 @@ class Trackable(object):
 
         # Load logs which have been already loaded by that request into log object
         lastTBLogsTmp = []
-        #soup = BeautifulSoup(str(root), 'lxml') # Parse the HTML as a string
         soup = BeautifulSoup(str(root), 'html.parser') # Parse the HTML as a string
         table = soup.find("table",{"class":"TrackableItemLogTable Table"}) # Grab log table
-        for row in table.find_all('tr'):
-            if "BorderTop" in row["class"]:
-                header = row.find('th') # there should only be one
-                tbLogType = header.img["title"]
-                tbLogDate = parse_date(header.get_text().replace("&nbsp", "").strip())
-                tbLogOwnerRow = row.find('td') # we need to first
-                tbLogOwner = tbLogOwnerRow.a.get_text().strip()
-                tbLogGUIDRow = row.findAll('td')[2] # we the third one
-                tbLogGUID = tbLogGUIDRow.a["href"].strip().replace("https://www.geocaching.com/track/log.aspx?LUID=","")
-            if "BorderBottom" in row["class"]:
-                logRow = row.find('td') # there should only be one
-                tbLogText = logRow.div.get_text().strip()
-                # create and fill log object
-                lastTBLogsTmp.append(Log(
-                    uuid=tbLogGUID,
-                    type=tbLogType,
-                    text=tbLogText,
-                    visited=tbLogDate,
-                    author=tbLogOwner,
-                )
-                )
+        if table is not None: # handle no logs eg when TB is not active
+            for row in table.find_all('tr'):
+                if "BorderTop" in row["class"]:
+                    header = row.find('th') # there should only be one
+                    tbLogType = header.img["title"]
+                    tbLogDate = parse_date(header.get_text().replace("&nbsp", "").strip())
+                    tbLogOwnerRow = row.find('td') # we need to first
+                    tbLogOwner = tbLogOwnerRow.a.get_text().strip()
+                    tbLogGUIDRow = row.findAll('td')[2] # we the third one
+                    tbLogGUID = tbLogGUIDRow.a["href"].strip().replace("https://www.geocaching.com/track/log.aspx?LUID=","")
+                if "BorderBottom" in row["class"]:
+                    logRow = row.find('td') # there should only be one
+                    tbLogText = logRow.div.get_text().strip()
+                    # create and fill log object
+                    lastTBLogsTmp.append(Log(
+                        uuid=tbLogGUID,
+                        type=tbLogType,
+                        text=tbLogText,
+                        visited=tbLogDate,
+                        author=tbLogOwner,
+                    )
+                    )
         self.lastTBLogs=lastTBLogsTmp
          
     def _load_log_page(self):
