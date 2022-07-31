@@ -324,7 +324,7 @@ class Trackable(object):
                     header = row.find('th') # there should only be one
                     tbLogType = header.img["title"]
                     tbLogDate = parse_date(header.get_text().replace("&nbsp", "").strip())
-                    tbLogOwnerRow = row.find('td') # we need to first
+                    tbLogOwnerRow = row.find('td') # we need the first one
                     tbLogOwner = tbLogOwnerRow.a.get_text().strip()
                     tbLogGUIDRow = row.findAll('td')[2] # we the third one
                     tbLogGUID = tbLogGUIDRow.a["href"].strip().replace("https://www.geocaching.com/track/log.aspx?LUID=","")
