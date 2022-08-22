@@ -90,9 +90,7 @@ class Trackable(object):
     def geocaching(self, geocaching):
         if not hasattr(geocaching, "_request"):
             raise errors.ValueError(
-                "Passed object (type: '{}') doesn't contain '_request' method.".format(
-                    _type(geocaching)
-                )
+                "Passed object (type: '{}') doesn't contain '_request' method.".format(_type(geocaching))
             )
         self._geocaching = geocaching
 
@@ -241,9 +239,7 @@ class Trackable(object):
     def releaseDate(self, releaseDate):
         if releaseDate is not None:
             if "," in releaseDate:
-                self._releaseDate = parse_date(
-                    str(releaseDate.strip().rsplit(", ", 1)[1])
-                )
+                self._releaseDate = parse_date(str(releaseDate.strip().rsplit(", ", 1)[1]))
             else:
                 self._releaseDate = ""
         else:
@@ -311,18 +307,14 @@ class Trackable(object):
             self.origin = ""
         tbReleaseDate = root.find(id="ctl00_ContentBody_BugDetails_BugReleaseDate")
         if tbReleaseDate is not None:
-            self.releaseDate = root.find(
-                id="ctl00_ContentBody_BugDetails_BugReleaseDate"
-            ).text
+            self.releaseDate = root.find(id="ctl00_ContentBody_BugDetails_BugReleaseDate").text
         else:
             self.releaseDate = ""
 
         # another Groundspeak trick... inconsistent relative / absolute URL on one page
         logLink = root.find(id="ctl00_ContentBody_LogLink")
         if logLink is not None:
-            self._log_page_url = (
-                "/track/" + root.find(id="ctl00_ContentBody_LogLink")["href"]
-            )
+            self._log_page_url = ("/track/" + root.find(id="ctl00_ContentBody_LogLink")["href"])
 
         location_raw = root.find(id="ctl00_ContentBody_BugDetails_BugLocation")
         if location_raw is not None:
@@ -340,24 +332,18 @@ class Trackable(object):
         # Load logs which have been already loaded by that request into log object
         lastTBLogsTmp = []
         soup = BeautifulSoup(str(root), "html.parser")  # Parse the HTML as a string
-        table = soup.find(
-            "table", {"class": "TrackableItemLogTable Table"}
-        )  # Grab log table
+        table = soup.find("table", {"class": "TrackableItemLogTable Table"})  # Grab log table
         if table is not None:  # handle no logs eg when TB is not active
             for row in table.find_all("tr"):
                 if "BorderTop" in row["class"]:
                     header = row.find("th")  # there should only be one
                     tbLogType = header.img["title"]
-                    tbLogDate = parse_date(
-                        header.get_text().replace("&nbsp", "").strip()
-                    )
+                    tbLogDate = parse_date(header.get_text().replace("&nbsp", "").strip())
                     tbLogOwnerRow = row.find("td")  # we need the first one
                     tbLogOwner = tbLogOwnerRow.a.get_text().strip()
                     tbLogGUIDRow = row.findAll("td")[2]  # we the third one
                     tbLogGUID = (
-                        tbLogGUIDRow.a["href"]
-                        .strip()
-                        .replace("https://www.geocaching.com/track/log.aspx?LUID=", "")
+                        tbLogGUIDRow.a["href"].strip().replace("https://www.geocaching.com/track/log.aspx?LUID=", "")
                     )
                 if "BorderBottom" in row["class"]:
                     logRow = row.find("td")  # there should only be one
@@ -385,18 +371,14 @@ class Trackable(object):
         log_page = self.geocaching._request(self._log_page_url)
 
         # find all valid log types for the trackable (-1 removes "- select type of log -")
-        valid_types = {
-            o["value"] for o in log_page.find_all("option") if o["value"] != "-1"
-        }
+        valid_types = {o["value"] for o in log_page.find_all("option") if o["value"] != "-1"}
 
         # find all static data fields needed for log
         hidden_inputs = log_page.find_all("input", type=["hidden"])
         hidden_inputs = {i["name"]: i.get("value", "") for i in hidden_inputs}
 
         # get user date format
-        date_format = log_page.find(
-            id="ctl00_ContentBody_LogBookPanel1_uxDateFormatHint"
-        ).text.strip("()")
+        date_format = log_page.find(id="ctl00_ContentBody_LogBookPanel1_uxDateFormatHint").text.strip("()")
 
         return valid_types, hidden_inputs, date_format
 
