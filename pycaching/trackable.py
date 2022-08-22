@@ -4,7 +4,6 @@ from bs4 import BeautifulSoup
 
 from pycaching import errors
 from pycaching.log import Log
-from pycaching.log import Type as LogType
 from pycaching.util import format_date, lazy_loaded, parse_date
 
 # prefix _type() function to avoid collisions with trackable type
@@ -391,7 +390,7 @@ class Trackable(object):
         if not log.text:
             raise errors.ValueError("Log text is empty")
 
-        valid_types, hidden_inputs, datse_format = self._load_log_page()
+        valid_types, hidden_inputs, date_format = self._load_log_page()
         if log.type.value not in valid_types:
             raise errors.ValueError("The trackable does not accept this type of log")
 
