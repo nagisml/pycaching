@@ -239,8 +239,8 @@ class Trackable(object):
         if releaseDate is not None:
             self._releaseDate = parse_date(releaseDate)
             # if "," in releaseDate:
-                # Tuesday, May 29, 2007
-                # Tuesday, 29 May 2007
+            # Tuesday, May 29, 2007
+            # Tuesday, 29 May 2007
             #     if releaseDate.count(",") == 1:
             #         self._releaseDate = parse_date(str(releaseDate.strip().rsplit(", ", 1)[1]))
             #     else:
