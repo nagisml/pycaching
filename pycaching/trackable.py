@@ -314,7 +314,7 @@ class Trackable(object):
         # another Groundspeak trick... inconsistent relative / absolute URL on one page
         logLink = root.find(id="ctl00_ContentBody_LogLink")
         if logLink is not None:
-            self._log_page_url = ("/track/" + root.find(id="ctl00_ContentBody_LogLink")["href"])
+            self._log_page_url = "/track/" + root.find(id="ctl00_ContentBody_LogLink")["href"]
 
         location_raw = root.find(id="ctl00_ContentBody_BugDetails_BugLocation")
         if location_raw is not None:
