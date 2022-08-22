@@ -77,6 +77,9 @@ def parse_date(raw):
         "%b/%d/%Y",
         "%d %b %y",
         "%d %B %Y",
+        "%B %d, %Y",
+        "%A, %B %d, %Y",
+        "%A, %d %B %Y",
     )
 
     for pattern in patterns:
