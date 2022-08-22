@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
+from bs4 import BeautifulSoup
 from pycaching import errors
-from pycaching.util import format_date, lazy_loaded, parse_date
 from pycaching.log import Log
 from pycaching.log import Type as LogType
-from bs4 import BeautifulSoup
+from pycaching.util import format_date, lazy_loaded, parse_date
 
 # prefix _type() function to avoid collisions with trackable type
 _type = type
