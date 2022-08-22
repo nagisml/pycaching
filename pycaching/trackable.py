@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from bs4 import BeautifulSoup
+
 from pycaching import errors
 from pycaching.log import Log
 from pycaching.log import Type as LogType
