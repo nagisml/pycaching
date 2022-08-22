@@ -15,7 +15,20 @@ class Trackable(object):
     """Represents a trackable with its properties."""
 
     def __init__(
-        self, geocaching, tid, *, name=None, location=None, owner=None, type=None, description=None, goal=None, url=None, origin=None, releaseDate=None, lastTBLogs=None
+        self,
+        geocaching, 
+        tid, 
+        *, 
+        name=None, 
+        location=None, 
+        owner=None, 
+        type=None, 
+        description=None, 
+        goal=None, 
+        url=None, 
+        origin=None, 
+        releaseDate=None, 
+        lastTBLogs=None
     ):
         self.geocaching = geocaching
         if tid is not None:
@@ -196,9 +209,9 @@ class Trackable(object):
 
         :type: :class:`str`
         """
-        if "," in self._origin: # there is a state and a country
-            return self._origin.rsplit(', ', 1)[1]
-        else: # only country or no value
+        if "," in self._origin:  # there is a state and a country
+            return self._origin.rsplit(", ", 1)[1]
+        else:  # only country or no value
             return self._origin
 
     @property
@@ -208,9 +221,9 @@ class Trackable(object):
 
         :type: :class:`str`
         """
-        if "," in self._origin: # there is a state and a country
-            return self._origin.rsplit(', ', 1)[0]
-        else: # only country or no value
+        if "," in self._origin:  # there is a state and a country
+            return self._origin.rsplit(", ", 1)[0]
+        else:  # only country or no value
             return ""
 
     @property
@@ -226,7 +239,7 @@ class Trackable(object):
     def releaseDate(self, releaseDate):
         if releaseDate is not None:
             if "," in releaseDate:
-                self._releaseDate = parse_date(str(releaseDate.strip().rsplit(', ', 1)[1]))
+                self._releaseDate = parse_date(str(releaseDate.strip().rsplit(", ", 1)[1]))
             else:
                 self._releaseDate = ""
         else:
@@ -318,20 +331,20 @@ class Trackable(object):
 
         # Load logs which have been already loaded by that request into log object
         lastTBLogsTmp = []
-        soup = BeautifulSoup(str(root), 'html.parser') # Parse the HTML as a string
-        table = soup.find("table",{"class":"TrackableItemLogTable Table"}) # Grab log table
+        soup = BeautifulSoup(str(root), "html.parser") # Parse the HTML as a string
+        table = soup.find("table", {"class":"TrackableItemLogTable Table"}) # Grab log table
         if table is not None: # handle no logs eg when TB is not active
-            for row in table.find_all('tr'):
+            for row in table.find_all("tr"):
                 if "BorderTop" in row["class"]:
-                    header = row.find('th') # there should only be one
+                    header = row.find("th") # there should only be one
                     tbLogType = header.img["title"]
                     tbLogDate = parse_date(header.get_text().replace("&nbsp", "").strip())
-                    tbLogOwnerRow = row.find('td') # we need the first one
+                    tbLogOwnerRow = row.find("td") # we need the first one
                     tbLogOwner = tbLogOwnerRow.a.get_text().strip()
-                    tbLogGUIDRow = row.findAll('td')[2] # we the third one
+                    tbLogGUIDRow = row.findAll("td")[2] # we the third one
                     tbLogGUID = tbLogGUIDRow.a["href"].strip().replace("https://www.geocaching.com/track/log.aspx?LUID=","")
                 if "BorderBottom" in row["class"]:
-                    logRow = row.find('td') # there should only be one
+                    logRow = row.find("td") # there should only be one
                     tbLogText = logRow.div.get_text().strip()
                     # create and fill log object
                     lastTBLogsTmp.append(Log(
@@ -375,7 +388,7 @@ class Trackable(object):
         if not log.text:
             raise errors.ValueError("Log text is empty")
 
-        valid_types, hidden_inputs, date_format = self._load_log_page()
+        valid_types, hidden_inputs, datse_format = self._load_log_page()
         if log.type.value not in valid_types:
             raise errors.ValueError("The trackable does not accept this type of log")
 
