@@ -241,7 +241,7 @@ class Trackable(object):
         if releaseDate is not None:
             try:
                 self._releaseDate = parse_date(releaseDate)
-            except:
+            except Exception:
                 self._releaseDate = ""
         else:
             self._releaseDate = ""
