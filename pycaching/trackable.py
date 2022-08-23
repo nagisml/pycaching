@@ -238,18 +238,6 @@ class Trackable(object):
     def releaseDate(self, releaseDate):
         if releaseDate is not None:
             self._releaseDate = parse_date(releaseDate)
-            # if "," in releaseDate:
-            # Tuesday, May 29, 2007
-            # Tuesday, 29 May 2007
-            #     if releaseDate.count(",") == 1:
-            #         self._releaseDate = parse_date(str(releaseDate.strip().rsplit(", ", 1)[1]))
-            #     else:
-            #         if releaseDate.count(",") == 2:
-            #             self._releaseDate = parse_date(str(releaseDate.strip().rsplit(", ", 1)[1]))
-            #         else:
-            #             self._releaseDate = parse_date(releaseDate)
-            # else:
-            #     self._releaseDate = ""
         else:
             self._releaseDate = ""
 
