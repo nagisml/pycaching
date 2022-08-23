@@ -242,7 +242,7 @@ class Trackable(object):
             try:
                 self._releaseDate = parse_date(releaseDate)
             except:
-                self._releaseDate = ""    
+                self._releaseDate = ""
         else:
             self._releaseDate = ""
 
