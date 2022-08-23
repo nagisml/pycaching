@@ -120,6 +120,8 @@ class Trackable(object):
 
     @location.setter
     def location(self, location):
+        if location is not None:
+            location = location.strip()
         self._location = location
 
     @property
@@ -237,7 +239,10 @@ class Trackable(object):
     @releaseDate.setter
     def releaseDate(self, releaseDate):
         if releaseDate is not None:
-            self._releaseDate = parse_date(releaseDate)
+            try:
+                self._releaseDate = parse_date(releaseDate)
+            except:
+                self._releaseDate = ""    
         else:
             self._releaseDate = ""
 
