@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 
-from bs4 import BeautifulSoup
-
 from pycaching import errors
 from pycaching.log import Log
+from pycaching.log import Type as LogType
 from pycaching.util import format_date, lazy_loaded, parse_date
 
 # prefix _type() function to avoid collisions with trackable type
@@ -26,8 +25,8 @@ class Trackable(object):
         goal=None,
         url=None,
         origin=None,
-        releaseDate=None,
-        lastTBLogs=None
+        release_date=None,
+        last_logs=None
     ):
         self.geocaching = geocaching
         if tid is not None:
@@ -48,10 +47,10 @@ class Trackable(object):
             self.url = url
         if origin is not None:
             self.origin = origin
-        if releaseDate is not None:
-            self.releaseDate = releaseDate
-        if lastTBLogs is not None:
-            self.lastTBLogs = lastTBLogs
+        if release_date is not None:
+            self.release_date = release_date
+        if last_logs is not None:
+            self.last_logs = last_logs
         self._log_page_url = None
         self._kml_url = None
 
@@ -193,7 +192,10 @@ class Trackable(object):
     @property
     @lazy_loaded
     def origin(self):
-        """The trackable origin.
+        """The trackable origin as shown on its details page.
+
+        Either a country (eg. "Germany") or a state and a country (eg. "Bayern, Germany").
+        Empty string if the origin is unknown.
 
         :type: :class:`str`
         """
@@ -205,8 +207,8 @@ class Trackable(object):
 
     @property
     @lazy_loaded
-    def originCountry(self):
-        """The trackable origin country.
+    def origin_country(self):
+        """The country part of the trackable :attr:`origin`.
 
         :type: :class:`str`
         """
@@ -217,8 +219,8 @@ class Trackable(object):
 
     @property
     @lazy_loaded
-    def originState(self):
-        """The trackable origin state.
+    def origin_state(self):
+        """The state part of the trackable :attr:`origin`, empty string if there is none.
 
         :type: :class:`str`
         """
@@ -229,35 +231,38 @@ class Trackable(object):
 
     @property
     @lazy_loaded
-    def releaseDate(self):
-        """The trackable releaseDate.
+    def release_date(self):
+        """The trackable release date.
 
-        :type: :class:`str`
+        :setter: Set a release date. If :class:`str` is passed, then :meth:`.util.parse_date`
+            is used and its return value is stored. Empty string if the date is missing or
+            cannot be parsed.
+        :type: :class:`datetime.date` or :class:`str`
         """
-        return self._releaseDate
+        return self._release_date
 
-    @releaseDate.setter
-    def releaseDate(self, releaseDate):
-        if releaseDate is not None:
+    @release_date.setter
+    def release_date(self, release_date):
+        if release_date is not None:
             try:
-                self._releaseDate = parse_date(releaseDate)
+                self._release_date = parse_date(release_date)
             except Exception:
-                self._releaseDate = ""
+                self._release_date = ""
         else:
-            self._releaseDate = ""
+            self._release_date = ""
 
     @property
     @lazy_loaded
-    def lastTBLogs(self):
-        """The trackable lastLogs.
+    def last_logs(self):
+        """The latest logs shown on the trackable details page (up to 10), newest first.
 
-        :type: :class:`str`
+        :type: :class:`list` of :class:`.Log`
         """
-        return self._lastTBLogs
+        return self._last_logs
 
-    @lastTBLogs.setter
-    def lastTBLogs(self, lastTBLogs):
-        self._lastTBLogs = lastTBLogs
+    @last_logs.setter
+    def last_logs(self, last_logs):
+        self._last_logs = last_logs
 
     def load(self):
         """Load all possible details about the trackable.
@@ -283,83 +288,72 @@ class Trackable(object):
         self.tid = root.find("span", "CoordInfoCode").text
         self.name = root.find(id="ctl00_ContentBody_lbHeading").text
         self.type = root.find(id="ctl00_ContentBody_BugTypeImage").get("alt")
-        bugDetails = root.find(id="ctl00_ContentBody_BugDetails_BugOwner")
-        if bugDetails is not None:
-            self.owner = root.find(id="ctl00_ContentBody_BugDetails_BugOwner").text
-        else:
-            self.owner = ""
-        tbGoal = root.find(id="TrackableGoal")
-        if tbGoal is not None:
-            self.goal = root.find(id="TrackableGoal").text
-        else:
-            self.goal = ""
-        tbDescription = root.find(id="TrackableDetails")
-        if tbDescription is not None:
-            self.description = root.find(id="TrackableDetails").text
-        else:
-            self.description = ""
-        tbKml = root.find(id="ctl00_ContentBody_lnkGoogleKML")
-        if tbKml is not None:
-            self._kml_url = root.find(id="ctl00_ContentBody_lnkGoogleKML").get("href")
-        bugOrigin = root.find(id="ctl00_ContentBody_BugDetails_BugOrigin")
-        if bugOrigin is not None:
-            self.origin = root.find(id="ctl00_ContentBody_BugDetails_BugOrigin").text
-        else:
-            self.origin = ""
-        tbReleaseDate = root.find(id="ctl00_ContentBody_BugDetails_BugReleaseDate")
-        if tbReleaseDate is not None:
-            self.releaseDate = root.find(id="ctl00_ContentBody_BugDetails_BugReleaseDate").text
-        else:
-            self.releaseDate = ""
+        # some elements are missing on the pages of inactive trackables
+        owner = root.find(id="ctl00_ContentBody_BugDetails_BugOwner")
+        self.owner = owner.text if owner else ""
+        goal = root.find(id="TrackableGoal")
+        self.goal = goal.text if goal else ""
+        description = root.find(id="TrackableDetails")
+        self.description = description.text if description else ""
+        origin = root.find(id="ctl00_ContentBody_BugDetails_BugOrigin")
+        self.origin = origin.text if origin else ""
+        release_date = root.find(id="ctl00_ContentBody_BugDetails_BugReleaseDate")
+        self.release_date = release_date.text if release_date else None
+
+        kml_link = root.find(id="ctl00_ContentBody_lnkGoogleKML")
+        if kml_link:
+            self._kml_url = kml_link.get("href")
 
         # another Groundspeak trick... inconsistent relative / absolute URL on one page
-        logLink = root.find(id="ctl00_ContentBody_LogLink")
-        if logLink is not None:
-            self._log_page_url = "/track/" + root.find(id="ctl00_ContentBody_LogLink")["href"]
+        log_link = root.find(id="ctl00_ContentBody_LogLink")
+        if log_link:
+            self._log_page_url = "/track/" + log_link["href"]
 
         location_raw = root.find(id="ctl00_ContentBody_BugDetails_BugLocation")
-        if location_raw is not None:
-            location_url = location_raw.get("href", "")
+        if location_raw is None:
+            self.location = ""
+        elif "cache_details" in location_raw.get("href", ""):
+            self.location = location_raw.get("href")
         else:
-            location_url = ""
-        if "cache_details" in location_url:
-            self.location = location_url
-        else:
-            if location_raw is not None:
-                self.location = location_raw.text
-            else:
-                self.location = ""
+            self.location = location_raw.text
 
-        # Load logs which have been already loaded by that request into log object
-        lastTBLogsTmp = []
-        soup = BeautifulSoup(str(root), "html.parser")  # Parse the HTML as a string
-        table = soup.find("table", {"class": "TrackableItemLogTable Table"})  # Grab log table
-        if table is not None:  # handle no logs eg when TB is not active
-            for row in table.find_all("tr"):
-                if "BorderTop" in row["class"]:
-                    header = row.find("th")  # there should only be one
-                    tbLogType = header.img["title"]
-                    tbLogDate = parse_date(header.get_text().replace("&nbsp", "").strip())
-                    tbLogOwnerRow = row.find("td")  # we need the first one
-                    tbLogOwner = tbLogOwnerRow.a.get_text().strip()
-                    tbLogGUIDRow = row.findAll("td")[2]  # we the third one
-                    tbLogGUID = (
-                        tbLogGUIDRow.a["href"].strip().replace("https://www.geocaching.com/track/log.aspx?LUID=", "")
-                    )
-                if "BorderBottom" in row["class"]:
-                    logRow = row.find("td")  # there should only be one
-                    tbLogText = logRow.div.get_text().strip()
-                    # create and fill log object
-                    lastTBLogsTmp.append(
-                        Log(
-                            uuid=tbLogGUID,
-                            type=tbLogType,
-                            text=tbLogText,
-                            visited=tbLogDate,
-                            author=tbLogOwner,
-                        )
-                    )
-        self.lastTBLogs = lastTBLogsTmp
+        self.last_logs = self._get_logs_from_details_page(root)
+
+    @staticmethod
+    def _get_logs_from_details_page(soup):
+        """Return a list of the latest logs shown on the trackable details page.
+
+        The details page shows only the most recent logs (up to 10), so this is not a complete
+        log history of the trackable.
+
+        :param bs4.BeautifulSoup soup: Parsed html document of the trackable details page.
+        :rtype: :class:`list` of :class:`.Log`
+        """
+        table = soup.find("table", "TrackableItemLogTable")
+        if table is None:  # no logs, e.g. for inactive trackables
+            return []
+
+        logs = []
+        # every log consists of two rows: a header row with the metadata and a row with the log text
+        for header_row in table.find_all("tr", "BorderTop"):
+            header = header_row.find("th")
+            type_filename = header.img["src"].split("/")[-1].split(".")[0]  # "/images/logtypes/48.png" -> "48"
+            author_cell, _, link_cell = header_row.find_all("td")[:3]
+            log_url = link_cell.a["href"]  # ".../track/log.aspx?LUID=<uuid>"
+
+            text_row = header_row.find_next_sibling("tr", "BorderBottom")
+            text = text_row.find("div", "TrackLogText") if text_row else None
+
+            logs.append(
+                Log(
+                    uuid=log_url.split("LUID=")[-1].strip(),
+                    type=LogType.from_filename(type_filename),
+                    text=text.get_text() if text else "",
+                    visited=header.get_text().strip(),
+                    author=author_cell.a.get_text(),
+                )
+            )
+        return logs
 
     def _load_log_page(self):
         """Load a logging page for this trackable.
